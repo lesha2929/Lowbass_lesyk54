@@ -1,130 +1,163 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>By Lesyk – Обробка Треків та Low Bass</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #ff0033, #0033ff);
-      color: #fff;
-    }
-    header {
-      background-color: rgba(0, 0, 0, 0.6);
-      text-align: center;
-      padding: 40px 20px;
-    }
-    header h1 { margin: 0; font-size: 2.5em; }
-    section {
-      padding: 40px 20px;
-      max-width: 800px;
-      margin: auto;
-      background-color: rgba(0, 0, 0, 0.4);
-      border-radius: 12px;
-      margin-bottom: 30px;
-    }
-    h2 { color: #00ffcc; }
-    .service {
-      margin-bottom: 20px;
-      padding: 15px;
-      background: #1a1a1a;
-      border-left: 5px solid #00ffcc;
-      border-radius: 6px;
-    }
-    .cta-button {
-      display: inline-block;
-      background-color: #00ffcc;
-      color: #111;
-      padding: 12px 20px;
-      margin-top: 10px;
-      text-decoration: none;
-      font-weight: bold;
-      border-radius: 4px;
-      transition: 0.3s;
-    }
-    .cta-button:hover {
-      background-color: #00ccaa;
-    }
-    .tracks {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    .track {
-      background: #1a1a1a;
-      padding: 15px;
-      border-left: 5px solid #ffcc00;
-      border-radius: 6px;
-    }
-    .track audio {
-      width: 100%;
-      margin-top: 10px;
-    }
-    .contact {
-      background-color: rgba(0, 0, 0, 0.6);
-      padding: 20px;
-      text-align: center;
-      border-radius: 12px;
-    }
-    .contact a {
-      color: #00ffcc;
-      text-decoration: none;
-      font-size: 1.2em;
-    }
-    @media (max-width: 600px) {
-      header h1 { font-size: 1.8em; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>By Lesyk – Обробка Треків та Low Bass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .btn-hover:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+        #examples {
+            background: linear-gradient(135deg, #ff0000, #000000);
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gray-900 text-white font-sans">
+    <header class="text-center py-6">
+        <h1 class="text-4xl font-bold">By Lesyk – Обробка Треків та Low Bass</h1>
+        <p class="mt-2 text-lg">Замовляй треки або вчися створювати сам</p>
+    </header>
 
-  <header>
-    <h1>By Lesyk – Обробка Треків та Low Bass</h1>
-    <p>Замовляй треки або вчися створювати сам</p>
-  </header>
+    <nav class="bg-gray-800 p-4">
+        <ul class="flex justify-center space-x-6">
+            <li><button class="tab-btn btn-hover px-4 py-2 bg-blue-600 rounded" data-tab="services">🔧 Послуги</button></li>
+            <li><button class="tab-btn btn-hover px-4 py-2 bg-blue-600 rounded" data-tab="examples">🎧 Приклади</button></li>
+            <li><button class="tab-btn btn-hover px-4 py-2 bg-blue-600 rounded" data-tab="contact">📲 Зв’язок</button></li>
+        </ul>
+    </nav>
 
-  <section>
-    <h2>🔧 Послуги</h2>
+    <main class="max-w-4xl mx-auto p-6">
+        <div id="services" class="tab-content active">
+            <h2 class="text-2xl font-bold mb-4">🔧 Послуги</h2>
+            <div class="space-y-4">
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">🎛 Замовлення обробки</h3>
+                    <p>Low Bass, Mastering, EQ – все під автозвук або сцену.</p>
+                    <a href="#" class="mt-2 inline-block text-blue-400 hover:underline">Замовити обробку</a>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">📚 Навчання Low Bass</h3>
+                    <p>Навчу робити глибокий бас у FL Studio – від 0 до готового треку.</p>
+                    <a href="#" class="mt-2 inline-block text-blue-400 hover:underline">Хочу навчання</a>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">🐌 Slowed & Screwed</h3>
+                    <p>Створюю атмосферні, сповільнені версії треків у 37-41Hz стилі.</p>
+                    <a href="#" class="mt-2 inline-block text-blue-400 hover:underline">Замовити slowed</a>
+                </div>
+            </div>
+        </div>
 
-    <div class="service">
-      <h3>🎛 Замовлення обробки</h3>
-      <p>Low Bass, Mastering, EQ – все під автозвук або сцену.</p>
-      <a href="https://t.me/By_lyosha" target="_blank" class="cta-button">Замовити обробку</a>
-    </div>
+        <div id="examples" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4">🎧 Приклади треків (37‑41 Hz)</h2>
+            <div class="space-y-4">
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">BLACKPINK – JUMP (🔥Low Bass by Lesha🔥)</h3>
+                    <audio controls class="w-full mt-2">
+                        <source src="https://drive.google.com/uc?export=download&id=1kWzpQn7V-PAmNAK1pW1kjvh75cpcmURT" type="audio/mpeg">
+                        Ваш браузер не підтримує аудіо.
+                    </audio>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">DOROFEEVA & POSITIFF – Смак-печаль (🔥Low Bass by Lesyk🔥)</h3>
+                    <audio controls class="w-full mt-2">
+                        <source src="https://example.com/dorofeeva-smak-pechal.mp3" type="audio/mpeg">
+                        Ваш браузер не підтримує аудіо.
+                    </audio>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">[37-41] $uicideboy$ - Ain't Got Shit On Me 🔥Low Bass by Lesha🔥</h3>
+                    <audio controls class="w-full mt-2">
+                        <source src="https://drive.google.com/uc?export=download&id=1kWzpQn7V-PAmNAK1pW1kjvh75cpcmURT" type="audio/mpeg">
+                        Ваш браузер не підтримує аудіо.
+                    </audio>
+                </div>
+                <div class="p-4 bg-gray-800 rounded-lg">
+                    <h3 class="text-xl">[37-41] Шугар - Олєг - ШУГАР 🔥Low Bass by Lesha🔥</h3>
+                    <audio controls class="w-full mt-2">
+                        <source src="https://drive.google.com/uc?export=download&id=1XB__RleuEvmrufb5nPiZYG0xFa9FZMHv" type="audio/mpeg">
+                        Ваш браузер не підтримує аудіо.
+                    </audio>
+                </div>
+            </div>
+        </div>
 
-    <div class="service">
-      <h3>📚 Навчання Low Bass</h3>
-      <p>Навчу робити глибокий бас у FL Studio – від 0 до готового треку.</p>
-      <a href="https://t.me/By_lyosha" target="_blank" class="cta-button">Хочу навчання</a>
-    </div>
+        <div id="contact" class="tab-content">
+            <h2 class="text-2xl font-bold mb-4">📲 Зв’язок</h2>
+            <p class="text-lg">Напиши мені в Telegram: <a href="https://t.me/By_lyosha" class="text-blue-400 hover:underline">@By_lyosha</a></p>
+        </div>
+    </main>
 
-    <div class="service">
-      <h3>🐌 Slowed & Screwed</h3>
-      <p>Створюю атмосферні, сповільнені версії треків у 37-41Hz стилі.</p>
-      <a href="https://t.me/By_lyosha" target="_blank" class="cta-button">Замовити slowed</a>
-    </div>
-  </section>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
 
-  <section>
-    <h2>🎧 Приклади треків (37‑41 Hz)</h2>
-    <div class="tracks">
-      <div class="track">
-        <strong>BLACKPINK – JUMP (🔥Low Bass by Lesha🔥)</strong>
-        <audio controls src="[37-41] BLACKPINK - JUMP 🔥Low Bass by Lesha🔥.mp3"></audio>
-      </div>
-      <div class="track">
-        <strong>DOROFEEVA & POSITIFF – Смак-печаль (🔥Low Bass by Lesyk🔥)</strong>
-        <audio controls src="[37-41] Смак-печаль - DOROFEEVA&POSITIF 🔥Low Bass by Lesyk🔥.mp3"></audio>
-      </div>
-    </div>
-  </section>
-
-  <section class="contact">
-    <h2>📲 Зв’язок</h2>
-    <p>Напиши мені в Telegram: <a href="https://t.me/By_lyosha" target="_blank">@By_lyosha</a></p>
-  </section>
-
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Hide all contents
+                    contents.forEach(content => content.classList.remove('active'));
+                    // Show selected content
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        });
+    </script>
 </body>
 </html>
